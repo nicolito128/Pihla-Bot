@@ -1,0 +1,10 @@
+# Environment
+.env
+!.env.example
+
+# Binaries
+bin/
+!bin/*.md
+
+# Editor
+.vscode
