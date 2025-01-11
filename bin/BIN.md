@@ -1,0 +1,2 @@
+# Bin
+Binary output folder.
