@@ -16,10 +16,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Handler interface {
-	ServeWS(c *Client)
-}
-
 type Client struct {
 	config    *ClientConfig
 	ws        *websocket.Conn

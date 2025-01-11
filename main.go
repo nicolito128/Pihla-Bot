@@ -7,7 +7,6 @@ import (
 	"github.com/nicolito128/Pihla-Bot/client"
 )
 
-// flags
 var (
 	name     = flag.String("name", "", "bot name")
 	password = flag.String("pass", "", "bot password")
