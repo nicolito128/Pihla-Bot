@@ -121,12 +121,48 @@ func (c *Client) Parse(data []byte) error {
 		username := parts[3]
 		content := parts[4]
 
-		msg := &Message{c, roomId, toID(username), username, content, tm}
+		msg := &Message{c, roomId, toID(username), username, content, tm, false}
+
+		c.handleChatMessage(msg)
+
+	case "pm":
+		username := parts[2][1:]
+		content := parts[4]
+
+		msg := &Message{
+			client:  c,
+			UserID:  toID(username),
+			Content: content,
+			PM:      true,
+		}
 
 		c.handleChatMessage(msg)
 	}
 
 	return nil
+}
+
+// SendRaw writes a new websocket.BinaryMessage to the server.
+func (c *Client) SendRaw(data []byte) error {
+	return c.ws.WriteMessage(websocket.BinaryMessage, data)
+}
+
+// Send writes a new websocket.TextMessage to the server.
+func (c *Client) Send(data string) error {
+	return c.ws.WriteMessage(websocket.TextMessage, []byte(data))
+}
+
+func (c *Client) SendRoomMessage(roomId, message string) error {
+	return c.Send(fmt.Sprintf("|/msgroom %s, %s", roomId, message))
+}
+
+func (c *Client) SendPrivateMessage(userId, message string) error {
+	return c.Send(fmt.Sprintf("|/pm %s, %s", userId, message))
+}
+
+func (c *Client) SendCommand(commandName, body string) error {
+	s := fmt.Sprintf("|/%s %s", commandName, body)
+	return c.Send(s)
 }
 
 func (c *Client) connect() error {
@@ -176,7 +212,7 @@ func (c *Client) login(id, str string) error {
 	}
 
 	for _, room := range c.config.Bot.Rooms {
-		if err = c.ws.WriteMessage(websocket.TextMessage, []byte("|/j "+room)); err != nil {
+		if err = c.ws.WriteMessage(websocket.TextMessage, []byte("|/j "+toID(room))); err != nil {
 			return fmt.Errorf("error trying to join to room `%s` at loign: %w", room, err)
 		}
 	}
@@ -216,10 +252,16 @@ func (c *Client) initChat(msg []string) error {
 
 func (c *Client) handleChatMessage(m *Message) {
 	if strings.HasPrefix(m.Content, "--ping") {
-		res := fmt.Sprintf("|/msgroom %s, Pong!", m.RoomID)
-		err := c.ws.WriteMessage(websocket.TextMessage, []byte(res))
-		if err != nil {
-			panic(err)
+		if m.PM {
+			err := c.SendPrivateMessage(m.UserID, "Pong!")
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			err := c.SendRoomMessage(m.RoomID, "Pong!")
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }

@@ -16,3 +16,7 @@ func NewRoom(c *Client, id, title string) *Room {
 		Users:  make([]*User, 0),
 	}
 }
+
+func (r *Room) Send(message string) error {
+	return r.client.SendRoomMessage(r.ID, message)
+}

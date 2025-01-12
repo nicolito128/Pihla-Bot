@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"strings"
 
 	"github.com/nicolito128/Pihla-Bot/client"
 )
@@ -10,6 +11,7 @@ import (
 var (
 	name     = flag.String("name", "", "bot name")
 	password = flag.String("pass", "", "bot password")
+	rooms    = flag.String("rooms", "botdev", "bot initial chat rooms")
 	debug    = flag.Bool("debug", false, "output messages to console")
 )
 
@@ -28,6 +30,6 @@ func UseFlagsForLogin(cc *client.ClientConfig) {
 	cc.Debug = *debug
 	cc.Bot.Username = *name
 	cc.Bot.Password = *password
-	cc.Bot.Rooms = []string{"Hispano", "Bot Development"}
+	cc.Bot.Rooms = strings.Split(*rooms, ",")
 	cc.Bot.Avatar = "211"
 }

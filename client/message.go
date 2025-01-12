@@ -10,4 +10,5 @@ type Message struct {
 	Username  string
 	Content   string
 	Timestamp time.Time
+	PM        bool
 }

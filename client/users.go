@@ -17,3 +17,7 @@ func NewUser(c *Client, id, name string) *User {
 		Name:   name,
 	}
 }
+
+func (u *User) Send(message string) error {
+	return u.client.SendPrivateMessage(u.ID, message)
+}
