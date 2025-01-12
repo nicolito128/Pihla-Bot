@@ -190,7 +190,7 @@ func (c *Client) login(id, str string) error {
 	q.Set("challstr", str)
 
 	u.RawQuery = q.Encode()
-	res, err := http.Post(u.String(), "application/x-www-form-urlencoded", nil)
+	res, err := http.Post(u.String(), "application/x-www-form-urlencoded; encoding=UTF-8", nil)
 	if err != nil {
 		return fmt.Errorf("post request error when login: %w", err)
 	}
