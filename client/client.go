@@ -205,7 +205,7 @@ func (c *Client) login(id, str string) error {
 		return fmt.Errorf("json unmarshal of login session error: %w", err)
 	}
 
-	d := []byte(fmt.Sprintf("|/trn %s,0,%s", c.config.Bot.Username, login.Assertion))
+	d := []byte(fmt.Sprintf("|/trn %s,%s,%s", c.config.Bot.Username, c.config.Bot.Avatar, login.Assertion))
 	err = c.ws.WriteMessage(websocket.TextMessage, d)
 	if err != nil {
 		return fmt.Errorf("websocket writing /trn error: %w", err)
