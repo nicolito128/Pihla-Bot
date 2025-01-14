@@ -1,21 +1,25 @@
 package client
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 const (
-	DefaultServerID      string = "sim"
+	DefaultServer        string = "sim.psim.us"
 	DefaultConnectionURL string = "wss://sim3.psim.us/showdown/websocket"
-	DefaultActionURL     string = "https://play.pokemonshowdown.com/~~" + DefaultServerID + ".psim.us/action.php"
+	DefaultActionURL     string = "https://play.pokemonshowdown.com/~~" + DefaultServer + "/action.php"
 )
 
 type Opt func(*ClientConfig)
 
 type ClientConfig struct {
 	ConnectionURL string
-	ServerID      string
 	ActionURL     string
+	Server        string
 	Debug         bool
 	Bot           *BotConfig
+	Logs          *log.Logger
 }
 
 type BotConfig struct {
@@ -31,14 +35,15 @@ type BotConfig struct {
 func DefaultClientConfig() *ClientConfig {
 	c := new(ClientConfig)
 	c.ConnectionURL = DefaultConnectionURL
-	c.ServerID = DefaultServerID
+	c.Server = DefaultServer
 	c.ActionURL = DefaultActionURL
 	c.Debug = false
 	c.Bot = &BotConfig{}
+	c.Logs = log.Default()
 
 	return c
 }
 
-func GetActionURL(serverId string) string {
-	return fmt.Sprintf("https://play.pokemonshowdown.com/~~%s.psim.us/action.php", serverId)
+func GetActionURL(server string) string {
+	return fmt.Sprintf("https://play.pokemonshowdown.com/~~%s/action.php", server)
 }

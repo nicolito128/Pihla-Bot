@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -19,22 +18,27 @@ import (
 )
 
 type Client struct {
+	// Basic client configuration.
+	//
+	// The bot configuration can be set with an .env
+	// file or by application arguments.
 	config *ClientConfig
-
-	logs *log.Logger
-
-	ctx   context.Context
-	errCh chan error
-
+	// The websocket connection.
 	ws *websocket.Conn
-
-	started   bool
+	// Context for the job created by Client.Start.
+	ctx context.Context
+	// Channel to handle client errors.
+	errCh chan error
+	// If the application has already been started.
+	started bool
+	// If the application had an active websocket connection.
 	connected bool
 
+	// Bot chat rooms.
 	Rooms []*Room
 }
 
-func NewClient(opts ...Opt) *Client {
+func New(opts ...Opt) *Client {
 	c := new(Client)
 
 	c.config = DefaultClientConfig()
@@ -42,9 +46,11 @@ func NewClient(opts ...Opt) *Client {
 		opt(c.config)
 	}
 
-	c.logs = log.Default()
-
 	return c
+}
+
+func NewClient(opts ...Opt) *Client {
+	return New(opts...)
 }
 
 func (c *Client) Start(ctx context.Context) <-chan error {
@@ -75,7 +81,7 @@ func (c *Client) Start(ctx context.Context) <-chan error {
 					case <-ticker.C:
 						counter++
 
-						c.Printf("Trying to reconnect every 10 seconds...")
+						c.Println("Trying to reconnect every 10 seconds...")
 						if err := c.connect(); err != nil {
 							c.Println("Error when trying to reconnect the application: %w", err)
 							c.Printf("Attempts to reconnect: %d\n", counter)

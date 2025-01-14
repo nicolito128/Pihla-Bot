@@ -1,13 +1,19 @@
 package client
 
+import "log"
+
+func (c *Client) Logger() *log.Logger {
+	return c.config.Logs
+}
+
 func (c *Client) Print(v ...any) {
-	c.logs.Print(v...)
+	c.config.Logs.Print(v...)
 }
 
 func (c *Client) Printf(f string, v ...any) {
-	c.logs.Printf(f, v...)
+	c.config.Logs.Printf(f, v...)
 }
 
 func (c *Client) Println(v ...any) {
-	c.logs.Println(v...)
+	c.config.Logs.Println(v...)
 }

@@ -5,5 +5,9 @@ build-exe:
 	go build -o bin/main.exe main.go
 
 dev:
-	go build -o bin/ main.go
+	make build
 	./bin/main -debug $(ARGUMENTS)
+
+run:
+	make build
+	./bin/main $(ARGUMENTS)
