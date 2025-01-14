@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -53,6 +54,7 @@ func (u *User) Send(message string) error {
 }
 
 func (u *User) HasPermission(p commands.Permission) bool {
+	fmt.Println(u.client.config.Bot.Admins, u.ID, slices.Contains(u.client.config.Bot.Admins, u.ID))
 	if slices.Contains(u.client.config.Bot.Admins, u.ID) {
 		return true
 	}
