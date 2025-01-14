@@ -2,7 +2,9 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,8 +19,16 @@ import (
 )
 
 type Client struct {
-	config    *ClientConfig
-	ws        *websocket.Conn
+	config *ClientConfig
+
+	logs *log.Logger
+
+	ctx   context.Context
+	errCh chan error
+
+	ws *websocket.Conn
+
+	started   bool
 	connected bool
 
 	Rooms []*Room
@@ -32,64 +42,73 @@ func NewClient(opts ...Opt) *Client {
 		opt(c.config)
 	}
 
+	c.logs = log.Default()
+
 	return c
 }
 
-func (c *Client) Start() error {
-	log.Println("Starting to listen the websocket connection...")
-
-	log.Println("Connecting to Pokemon Showdown...")
-	if err := c.connect(); err != nil {
-		return err
+func (c *Client) Start(ctx context.Context) <-chan error {
+	if c.started {
+		return c.errCh
 	}
+	c.started = true
 
-outer:
-	for {
-		typ, p, err := c.ws.ReadMessage()
-		if typ == websocket.CloseMessage {
-			c.ws.Close()
-			c.connected = false
+	c.errCh = make(chan error)
+	c.ctx = ctx
 
-			ticker := time.NewTicker(5 * time.Second)
-			counter, limit := 0, 10
-			for {
-				select {
-				case <-ticker.C:
-					counter++
+	go func(ch chan<- error) {
+		c.Println("Connecting to Pokemon Showdown...")
+		if err := c.connect(); err != nil {
+			c.errCh <- err
+		}
 
-					log.Println("Trying to reconnect every 5 seconds...")
-					if err := c.connect(); err != nil {
-						log.Println("Error when trying to reconnect the application: %w", err)
-						log.Printf("Attempts to reconnect: %d\n", counter)
+		for {
+			typ, p, err := c.ws.ReadMessage()
+			if typ == websocket.CloseMessage {
+				c.ws.Close()
+				c.connected = false
+
+				ticker := time.NewTicker(10 * time.Second)
+				counter, limit := 0, 10
+				for {
+					select {
+					case <-ticker.C:
+						counter++
+
+						c.Printf("Trying to reconnect every 10 seconds...")
+						if err := c.connect(); err != nil {
+							c.Println("Error when trying to reconnect the application: %w", err)
+							c.Printf("Attempts to reconnect: %d\n", counter)
+						}
+
+					default:
+						if counter == limit {
+							c.Stop("It was not possible to reconnect the application.")
+							return
+						}
 					}
+				}
+			}
 
-				default:
-					if counter == limit {
-						log.Println("Shutting down the application.")
-						break outer
+			if err != nil && typ != websocket.CloseMessage {
+				c.errCh <- err
+			}
+
+			if c.connected {
+				if c.config.Debug {
+					c.Println(string(p))
+				}
+
+				if typ == websocket.TextMessage {
+					if err = c.Parse(p); err != nil {
+						c.errCh <- err
 					}
 				}
 			}
 		}
+	}(c.errCh)
 
-		if err != nil && typ != websocket.CloseMessage {
-			return err
-		}
-
-		if c.connected {
-			if c.config.Debug {
-				log.Println(string(p))
-			}
-
-			if typ == websocket.TextMessage {
-				if err = c.Parse(p); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
+	return c.errCh
 }
 
 func (c *Client) Parse(data []byte) error {
@@ -163,6 +182,19 @@ func (c *Client) SendPrivateMessage(userId, message string) error {
 func (c *Client) SendCommand(commandName, body string) error {
 	s := fmt.Sprintf("|/%s %s", commandName, body)
 	return c.Send(s)
+}
+
+func (c *Client) Stop(reason string) error {
+	if !c.started {
+		return errors.New("client has not been started before closing")
+	}
+
+	if c.connected {
+		c.ws.Close()
+	}
+
+	c.Println(reason)
+	return nil
 }
 
 func (c *Client) connect() error {
