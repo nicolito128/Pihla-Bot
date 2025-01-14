@@ -154,6 +154,17 @@ func (c *Client) Parse(data []byte) error {
 
 		newUser.AddAlt(oldUser.ID)
 		oldUser.AddAlt(newUser.ID)
+
+		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		room, ok := c.Rooms[roomId]
+		if ok {
+			_, hasUser := room.Users[newUser.ID]
+			if !hasUser {
+				room.Users[newUser.ID] = newUser
+			}
+
+			newUser.Chatrooms = append(newUser.Chatrooms, roomId)
+		}
 	}
 
 	return nil
@@ -238,10 +249,22 @@ func (c *Client) handleChatMessage(m *Message) {
 			return
 		}
 
+		hasPerm := m.User.HasPermission(baseCmd.Permissions)
+		if !hasPerm {
+			m.Room.Send("You don't have sufficient permissions. Requires: " + baseCmd.Permissions.String())
+			return
+		}
+
 		cmd, rest := commands.FindDeeperSubCommand(baseCmd, body)
 		if cmd != nil {
 			m.Content = strings.Join(rest, " ")
 			m.Content = strings.Trim(m.Content, " ")
+
+			hasPerm := m.User.HasPermission(cmd.Permissions)
+			if !hasPerm {
+				m.Room.Send("You don't have sufficient permissions. Requires: " + cmd.Permissions.String())
+				return
+			}
 
 			err := cmd.Handler(m)
 			if err != nil {

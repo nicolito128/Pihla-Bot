@@ -162,6 +162,10 @@ func (c *Client) FindCommand(name string) (cmd *commands.Command[*Message], ok b
 	return
 }
 
+func (c *Client) Prefix() string {
+	return c.config.Bot.Prefix
+}
+
 func (c *Client) connect() error {
 	conn, _, err := websocket.DefaultDialer.Dial(c.config.ConnectionURL, nil)
 	if err != nil {

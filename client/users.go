@@ -2,8 +2,11 @@ package client
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/nicolito128/Pihla-Bot/commands"
 )
 
 type RankTyp rune
@@ -49,13 +52,27 @@ func (u *User) Send(message string) error {
 	return u.client.SendPrivateMessage(u.ID, message)
 }
 
-func (u *User) updateProfile(username string) {
-	id, name, rank, busy := parseUsername(username)
-	u.ID = id
-	u.Name = name
-	u.Rank = rank
-	u.Busy = busy
-	u.LastSeen = time.Now()
+func (u *User) HasPermission(p commands.Permission) bool {
+	if slices.Contains(u.client.config.Bot.Admins, u.ID) {
+		return true
+	}
+
+	if p.String() == "none" {
+		return true
+	}
+
+	switch p.String() {
+	case "#":
+		return u.Rank == '#'
+	case "@":
+		return u.Rank == '#' || u.Rank == '@'
+	case "%":
+		return u.Rank == '#' || u.Rank == '@' || u.Rank == '%'
+	case "+":
+		return u.Rank == '#' || u.Rank == '@' || u.Rank == '%' || u.Rank == '+'
+	}
+
+	return false
 }
 
 func (u *User) AddAlt(userid string) error {
@@ -75,6 +92,15 @@ func (u *User) HasAlt(userid string) bool {
 	}
 
 	return false
+}
+
+func (u *User) updateProfile(username string) {
+	id, name, rank, busy := parseUsername(username)
+	u.ID = id
+	u.Name = name
+	u.Rank = rank
+	u.Busy = busy
+	u.LastSeen = time.Now()
 }
 
 func parseUsername(username string) (id string, name string, rank RankTyp, busy bool) {

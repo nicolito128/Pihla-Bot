@@ -7,6 +7,10 @@ type Command[T any] struct {
 
 	Description string
 
+	Usage string
+
+	Permissions Permission
+
 	Handler HandleFunc[T]
 
 	SubCommands map[string]*Command[T]
@@ -27,6 +31,10 @@ func FindDeeperSubCommand[T any](cmd *Command[T], body []string) (*Command[T], [
 	for i, part := range body {
 		subcmd, ok := cmd.SubCommands[part]
 		if ok {
+			if subcmd.Name == "" {
+				subcmd.Name = part
+			}
+
 			deepSubCommand, rest = FindDeeperSubCommand(subcmd, body[i+1:])
 		}
 	}

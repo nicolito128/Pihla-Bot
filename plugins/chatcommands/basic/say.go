@@ -13,6 +13,8 @@ var SayCommand = &commands.Command[*client.Message]{
 
 	Description: "Say something with the bot.",
 
+	Usage: "say [phrase]",
+
 	Handler: func(m *client.Message) error {
 		content := m.Content
 		if strings.HasPrefix(content, "/") {

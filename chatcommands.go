@@ -5,6 +5,7 @@ import (
 
 	"github.com/nicolito128/Pihla-Bot/client"
 	"github.com/nicolito128/Pihla-Bot/commands"
+	"github.com/nicolito128/Pihla-Bot/plugins/chatcommands/admin"
 	"github.com/nicolito128/Pihla-Bot/plugins/chatcommands/basic"
 	"github.com/nicolito128/Pihla-Bot/plugins/chatcommands/info"
 )
@@ -21,6 +22,7 @@ func init() {
 		basic.PingCommand,
 		basic.SayCommand,
 		info.HelpCommand,
+		admin.DataCommand,
 	)
 }
 
