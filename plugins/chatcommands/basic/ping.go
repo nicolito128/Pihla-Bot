@@ -8,12 +8,10 @@ import (
 var PingCommand = &commands.Command[*client.Message]{
 	Name: "ping",
 
-	Description: "",
+	Description: "Ping pong",
 
 	Handler: func(m *client.Message) error {
 		m.Room.Send("Pong! :)")
 		return nil
 	},
-
-	SubCommands: map[string]*commands.Command[*client.Message]{},
 }

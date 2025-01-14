@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"strings"
 	"time"
 )
@@ -17,6 +18,7 @@ type User struct {
 	IsBot     bool
 	LastSeen  time.Time
 	Chatrooms []string
+	Alts      []string
 }
 
 func NewUser(c *Client, username string) *User {
@@ -29,6 +31,17 @@ func NewUser(c *Client, username string) *User {
 		Busy:     busy,
 		IsBot:    rank == '*',
 		LastSeen: time.Now(),
+		Alts:     make([]string, 0),
+	}
+}
+
+func NewUserByID(c *Client, userId string) *User {
+	return &User{
+		client:   c,
+		ID:       userId,
+		Name:     userId,
+		LastSeen: time.Now(),
+		Alts:     make([]string, 0),
 	}
 }
 
@@ -43,6 +56,25 @@ func (u *User) updateProfile(username string) {
 	u.Rank = rank
 	u.Busy = busy
 	u.LastSeen = time.Now()
+}
+
+func (u *User) AddAlt(userid string) error {
+	if u.HasAlt(userid) {
+		return errors.New("the user already has this alt registered")
+	}
+
+	u.Alts = append(u.Alts, userid)
+	return nil
+}
+
+func (u *User) HasAlt(userid string) bool {
+	for _, alt := range u.Alts {
+		if alt == userid {
+			return true
+		}
+	}
+
+	return false
 }
 
 func parseUsername(username string) (id string, name string, rank RankTyp, busy bool) {

@@ -31,6 +31,8 @@ type Client struct {
 
 	// Bot chat rooms.
 	Rooms map[string]*Room
+	// Bot users.
+	Users map[string]*User
 }
 
 func New(opts ...Opt) *Client {
@@ -43,6 +45,7 @@ func New(opts ...Opt) *Client {
 
 	c.chatCommands = make(map[string]*commands.Command[*Message])
 	c.Rooms = make(map[string]*Room)
+	c.Users = make(map[string]*User)
 	return c
 }
 
@@ -152,6 +155,11 @@ func (c *Client) Stop(reason string) error {
 
 func (c *Client) HandleCommand(name string, cmd *commands.Command[*Message]) {
 	c.chatCommands[name] = cmd
+}
+
+func (c *Client) FindCommand(name string) (cmd *commands.Command[*Message], ok bool) {
+	cmd, ok = c.chatCommands[name]
+	return
 }
 
 func (c *Client) connect() error {

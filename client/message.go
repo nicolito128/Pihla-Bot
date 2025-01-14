@@ -11,3 +11,7 @@ type Message struct {
 	Content   string
 	PM        bool
 }
+
+func (m *Message) Client() *Client {
+	return m.client
+}
