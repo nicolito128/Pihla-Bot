@@ -5,10 +5,9 @@ import "time"
 type Message struct {
 	client *Client
 
-	RoomID    string
-	UserID    string
-	Username  string
-	Content   string
+	Room      *Room
+	User      *User
 	Timestamp time.Time
+	Content   string
 	PM        bool
 }

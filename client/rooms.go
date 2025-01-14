@@ -5,15 +5,15 @@ type Room struct {
 
 	ID    string
 	Title string
-	Users []*User
+	Users map[string]*User
 }
 
-func NewRoom(c *Client, id, title string) *Room {
+func NewRoom(c *Client, title string) *Room {
 	return &Room{
 		client: c,
-		ID:     id,
+		ID:     toID(title),
 		Title:  title,
-		Users:  make([]*User, 0),
+		Users:  make(map[string]*User),
 	}
 }
 

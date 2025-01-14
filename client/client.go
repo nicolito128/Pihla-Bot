@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -33,9 +34,11 @@ type Client struct {
 	started bool
 	// If the application had an active websocket connection.
 	connected bool
+	// Plugins
+	//commands map[string]*plugins.Command
 
 	// Bot chat rooms.
-	Rooms []*Room
+	Rooms map[string]*Room
 }
 
 func New(opts ...Opt) *Client {
@@ -46,6 +49,7 @@ func New(opts ...Opt) *Client {
 		opt(c.config)
 	}
 
+	c.Rooms = make(map[string]*Room)
 	return c
 }
 
@@ -137,16 +141,24 @@ func (c *Client) Parse(data []byte) error {
 
 	case "c:":
 		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		room := c.Rooms[roomId]
 
 		i, err := strconv.ParseInt(parts[2], 10, 64)
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("error trying to parse timestamp: %w", err)
 		}
-		tm := time.Unix(i, 0)
-		username := parts[3]
-		content := parts[4]
 
-		msg := &Message{c, roomId, toID(username), username, content, tm, false}
+		tstamp, username, content := time.Unix(i, 0), parts[3], parts[4]
+		user := room.Users[toID(username)]
+
+		msg := &Message{
+			client:    c,
+			Room:      room,
+			User:      user,
+			Timestamp: tstamp,
+			Content:   content,
+			PM:        false,
+		}
 
 		c.handleChatMessage(msg)
 
@@ -156,12 +168,53 @@ func (c *Client) Parse(data []byte) error {
 
 		msg := &Message{
 			client:  c,
-			UserID:  toID(username),
+			User:    NewUser(c, username),
 			Content: content,
 			PM:      true,
 		}
 
 		c.handleChatMessage(msg)
+
+	case "join", "j", "J":
+		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		room := c.Rooms[roomId]
+
+		username := parts[2]
+		userid := toID(username)
+
+		if room != nil {
+			user := room.Users[toID(username)]
+			if user == nil {
+				room.Users[userid] = NewUser(c, username)
+				user = room.Users[userid]
+			} else {
+				user.updateProfile(username)
+			}
+
+			user.Chatrooms = append(user.Chatrooms, roomId)
+		}
+
+	case "leave", "l", "L":
+		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+
+		var room *Room
+		for i := range c.Rooms {
+			if c.Rooms[i].ID == roomId {
+				room = c.Rooms[i]
+				break
+			}
+		}
+
+		username := parts[2]
+		if room != nil {
+			user := room.Users[toID(username)]
+			if user != nil {
+				ind := slices.Index(user.Chatrooms, room.ID)
+				if ind != -1 {
+					user.Chatrooms = append(user.Chatrooms[:ind], user.Chatrooms[ind+1:]...)
+				}
+			}
+		}
 	}
 
 	return nil
@@ -260,48 +313,25 @@ func (c *Client) login(id, str string) error {
 
 func (c *Client) initChat(msg []string) error {
 	var room *Room
-	var users []*User
 
 	if msg[0] == "title" {
-		id := toID(msg[1])
-		room = NewRoom(c, id, msg[1])
+		room = NewRoom(c, msg[1])
 	}
 	msg = msg[2:]
 
 	if msg[0] == "users" {
 		userlist := strings.Split(msg[1], ",")[1:]
-		users = make([]*User, 0)
 
 		for i := range userlist {
-			rank := RankTyp(userlist[i][0])
-			name := userlist[i][1:]
-			id := toID(name)
+			username := userlist[i]
 
-			u := NewUser(c, id, name)
-			u.Rank = rank
-			users = append(users, u)
+			u := NewUser(c, username)
+			room.Users[u.ID] = u
 		}
 	}
 
-	room.Users = users
-	c.Rooms = append(c.Rooms, room)
+	c.Rooms[room.ID] = room
 	return nil
-}
-
-func (c *Client) handleChatMessage(m *Message) {
-	if strings.HasPrefix(m.Content, "--ping") {
-		if m.PM {
-			err := c.SendPrivateMessage(m.UserID, "Pong!")
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			err := c.SendRoomMessage(m.RoomID, "Pong!")
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
 }
 
 func (c *Client) parseRawData(data []byte) []string {
