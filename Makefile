@@ -1,8 +1,8 @@
 build:
-	go build -o bin/ main.go
+	go build -o bin/main .
 
 build-exe:
-	go build -o bin/main.exe main.go
+	go build -o bin/main.exe .
 
 dev:
 	make build

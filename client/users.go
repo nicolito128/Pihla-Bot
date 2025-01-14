@@ -14,6 +14,7 @@ type User struct {
 	Name      string
 	Rank      RankTyp
 	Busy      bool
+	IsBot     bool
 	LastSeen  time.Time
 	Chatrooms []string
 }
@@ -26,6 +27,7 @@ func NewUser(c *Client, username string) *User {
 		Name:     name,
 		Rank:     rank,
 		Busy:     busy,
+		IsBot:    rank == '*',
 		LastSeen: time.Now(),
 	}
 }
