@@ -19,6 +19,7 @@ var chatCommands = make([]*commands.Command[*client.Message], 0)
 func init() {
 	chatCommands = append(
 		chatCommands,
+		basic.CalcCommand,
 		basic.PingCommand,
 		basic.SayCommand,
 		info.HelpCommand,
