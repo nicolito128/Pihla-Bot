@@ -14,6 +14,8 @@ var DataCommand = &commands.Command[*client.Message]{
 
 	Permissions: commands.AdminPermission,
 
+	AllowPM: true,
+
 	Handler: func(m *client.Message) error {
 		return nil
 	},

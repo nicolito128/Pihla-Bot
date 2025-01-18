@@ -218,7 +218,8 @@ func (c *Client) initChat(msg []string) error {
 	var room *Room
 
 	if msg[0] == "title" {
-		room = NewRoom(c, msg[1])
+		title := strings.TrimSuffix(msg[1], "\n")
+		room = NewRoom(c, title)
 	}
 	msg = msg[2:]
 
@@ -228,6 +229,7 @@ func (c *Client) initChat(msg []string) error {
 		for i := range userlist {
 			username := userlist[i]
 			u := NewUser(c, username)
+			u.Chatrooms = append(u.Chatrooms, room.ID)
 
 			c.Users[u.ID] = u
 			room.Users[u.ID] = u
