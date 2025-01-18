@@ -22,7 +22,7 @@ var SayCommand = &commands.Command[*client.Message]{
 	Handler: func(m *client.Message) error {
 		content := m.Content
 		if strings.HasPrefix(content, "/") || strings.HasPrefix(content, "!") {
-			return fmt.Errorf("error: no estoy autorizada a utilizar otros comandos")
+			return fmt.Errorf("invalid message content: I'm not authorized to use any other commands")
 		}
 
 		if len(content) == 0 || strings.Trim(content, " ") == "" {

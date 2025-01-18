@@ -25,7 +25,7 @@ var SayRoomCommand = &commands.Command[*client.Message]{
 
 	Handler: func(m *client.Message) error {
 		if strings.HasPrefix(m.Content, "/") || strings.HasPrefix(m.Content, "!") {
-			return fmt.Errorf("error: no estoy autorizada a utilizar otros comandos")
+			return fmt.Errorf("invalid message content: I'm not authorized to use any other commands")
 		}
 
 		parts := strings.Split(m.Content, ",")
