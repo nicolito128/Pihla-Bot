@@ -23,6 +23,7 @@ func init() {
 		basic.SayCommand,
 		info.HelpCommand,
 		admin.DataCommand,
+		admin.SayRoomCommand,
 	)
 }
 

@@ -14,6 +14,8 @@ var HelpCommand = &commands.Command[*client.Message]{
 
 	Description: "Get information about a command.",
 
+	Usage: "help [command name]",
+
 	Handler: func(m *client.Message) error {
 		parts := strings.Split(m.Content, " ")
 

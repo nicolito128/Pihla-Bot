@@ -162,6 +162,24 @@ func (c *Client) FindCommand(name string) (cmd *commands.Command[*Message], ok b
 	return
 }
 
+func (c *Client) HasRoom(roomId string) bool {
+	_, ok := c.Rooms[roomId]
+	return ok
+}
+
+func (c *Client) HasUser(userId string) bool {
+	_, ok := c.Users[userId]
+	return ok
+}
+
+func (c *Client) Room(roomId string) *Room {
+	return c.Rooms[roomId]
+}
+
+func (c *Client) User(userId string) *User {
+	return c.Users[userId]
+}
+
 func (c *Client) Prefix() string {
 	return c.config.Bot.Prefix
 }

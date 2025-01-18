@@ -15,13 +15,22 @@ var SayCommand = &commands.Command[*client.Message]{
 
 	Usage: "say [phrase]",
 
+	AllowPM: true,
+
+	Permissions: commands.VoicerPermission,
+
 	Handler: func(m *client.Message) error {
 		content := m.Content
 		if strings.HasPrefix(content, "/") {
 			return fmt.Errorf("error: no estoy autorizada a utilizar otros comandos")
 		}
 
-		m.Room.Send(content)
+		if m.PM {
+			m.User.Send(content)
+		} else {
+			m.Room.Send(content)
+		}
+
 		return nil
 	},
 }

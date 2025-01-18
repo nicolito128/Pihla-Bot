@@ -1,5 +1,7 @@
 package client
 
+import "github.com/nicolito128/Pihla-Bot/utils"
+
 type Room struct {
 	client *Client
 
@@ -11,7 +13,7 @@ type Room struct {
 func NewRoom(c *Client, title string) *Room {
 	return &Room{
 		client: c,
-		ID:     toID(title),
+		ID:     utils.ToID(title),
 		Title:  title,
 		Users:  make(map[string]*User),
 	}

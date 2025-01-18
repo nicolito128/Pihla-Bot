@@ -9,6 +9,8 @@ type Command[T any] struct {
 
 	Usage string
 
+	AllowPM bool
+
 	Permissions Permission
 
 	Handler HandleFunc[T]

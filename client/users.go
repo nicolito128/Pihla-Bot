@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nicolito128/Pihla-Bot/commands"
+	"github.com/nicolito128/Pihla-Bot/utils"
 )
 
 type RankTyp rune
@@ -106,7 +107,7 @@ func (u *User) updateProfile(username string) {
 }
 
 func parseUsername(username string) (id string, name string, rank RankTyp, busy bool) {
-	id = toID(username)
+	id = utils.ToID(username)
 	rank = RankTyp(username[0])
 	busy = strings.HasSuffix(username, "@!")
 	if busy {

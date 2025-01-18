@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/nicolito128/Pihla-Bot/commands"
+	"github.com/nicolito128/Pihla-Bot/utils"
 )
 
 func (c *Client) Parse(data []byte) error {
@@ -28,7 +28,7 @@ func (c *Client) Parse(data []byte) error {
 		}
 
 	case "init":
-		id := toID(parts[2])
+		id := utils.ToID(parts[2])
 		if id == "chat" {
 			if err := c.initChat(parts[3:]); err != nil {
 				return err
@@ -36,7 +36,7 @@ func (c *Client) Parse(data []byte) error {
 		}
 
 	case "c:":
-		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 		room := c.Rooms[roomId]
 
 		i, err := strconv.ParseInt(parts[2], 10, 64)
@@ -45,7 +45,7 @@ func (c *Client) Parse(data []byte) error {
 		}
 
 		tstamp, username, content := time.Unix(i, 0), parts[3], parts[4]
-		user := room.Users[toID(username)]
+		user := room.Users[utils.ToID(username)]
 
 		msg := &Message{
 			client:    c,
@@ -59,13 +59,13 @@ func (c *Client) Parse(data []byte) error {
 		c.handleChatMessage(msg)
 
 	case "chat", "c":
-		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 
 		room, existsRoom := c.Rooms[roomId]
 		if existsRoom {
 			username, content := parts[2], parts[3]
 
-			user, existsUser := room.Users[toID(username)]
+			user, existsUser := room.Users[utils.ToID(username)]
 			if existsUser {
 				msg := &Message{
 					client:  c,
@@ -94,13 +94,13 @@ func (c *Client) Parse(data []byte) error {
 
 	case "join", "j", "J":
 		username := parts[2]
-		user, ok := c.Users[toID(username)]
+		user, ok := c.Users[utils.ToID(username)]
 		if !ok {
 			user = NewUser(c, username)
-			c.Users[toID(username)] = user
+			c.Users[utils.ToID(username)] = user
 		}
 
-		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 		room, ok := c.Rooms[roomId]
 		if ok {
 			_, hasUser := room.Users[user.ID]
@@ -114,13 +114,13 @@ func (c *Client) Parse(data []byte) error {
 
 	case "leave", "l", "L":
 		username := parts[2]
-		user, ok := c.Users[toID(username)]
+		user, ok := c.Users[utils.ToID(username)]
 		if !ok {
 			user = NewUser(c, username)
-			c.Users[toID(username)] = user
+			c.Users[utils.ToID(username)] = user
 		}
 
-		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 		room, ok := c.Rooms[roomId]
 		if ok {
 			_, hasUser := room.Users[user.ID]
@@ -137,7 +137,7 @@ func (c *Client) Parse(data []byte) error {
 
 	case "name", "n", "N":
 		newUsername := parts[2]
-		newUser, ok := c.Users[toID(newUsername)]
+		newUser, ok := c.Users[utils.ToID(newUsername)]
 		if !ok {
 			newUser = NewUser(c, newUsername)
 			c.Users[newUser.ID] = newUser
@@ -155,7 +155,7 @@ func (c *Client) Parse(data []byte) error {
 		newUser.AddAlt(oldUser.ID)
 		oldUser.AddAlt(newUser.ID)
 
-		roomId := toID(strings.TrimPrefix(parts[0], ">"))
+		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 		room, ok := c.Rooms[roomId]
 		if ok {
 			_, hasUser := room.Users[newUser.ID]
@@ -178,7 +178,7 @@ func (c *Client) login(id, str string) error {
 
 	q := u.Query()
 	q.Set("act", "login")
-	q.Set("name", toID(c.config.Bot.Username))
+	q.Set("name", utils.ToID(c.config.Bot.Username))
 	q.Set("pass", c.config.Bot.Password)
 	q.Set("challengekeyid", id)
 	q.Set("challstr", str)
@@ -206,7 +206,7 @@ func (c *Client) login(id, str string) error {
 	}
 
 	for _, room := range c.config.Bot.Rooms {
-		if err = c.ws.WriteMessage(websocket.TextMessage, []byte("|/j "+toID(room))); err != nil {
+		if err = c.ws.WriteMessage(websocket.TextMessage, []byte("|/j "+utils.ToID(room))); err != nil {
 			return fmt.Errorf("error trying to join to room `%s` at loign: %w", room, err)
 		}
 	}
@@ -249,10 +249,21 @@ func (c *Client) handleChatMessage(m *Message) {
 			return
 		}
 
+		if m.PM && !baseCmd.AllowPM {
+			m.User.Send("This command is not allowed in PMs.")
+			return
+		}
+
 		hasPerm := m.User.HasPermission(baseCmd.Permissions)
 		if !hasPerm {
-			m.Room.Send("You don't have sufficient permissions. Requires: " + baseCmd.Permissions.String())
-			return
+			permMsg := "You don't have sufficient permissions. Requires: " + baseCmd.Permissions.String()
+			if m.PM {
+				m.User.Send(permMsg)
+				return
+			} else {
+				m.Room.Send(permMsg)
+				return
+			}
 		}
 
 		cmd, rest := commands.FindDeeperSubCommand(baseCmd, body)
@@ -262,8 +273,14 @@ func (c *Client) handleChatMessage(m *Message) {
 
 			hasPerm := m.User.HasPermission(cmd.Permissions)
 			if !hasPerm {
-				m.Room.Send("You don't have sufficient permissions. Requires: " + cmd.Permissions.String())
-				return
+				permMsg := "You don't have sufficient permissions. Requires: " + cmd.Permissions.String()
+				if m.PM {
+					m.User.Send(permMsg)
+					return
+				} else {
+					m.Room.Send(permMsg)
+					return
+				}
 			}
 
 			err := cmd.Handler(m)
@@ -281,15 +298,5 @@ func (c *Client) parseRawData(data []byte) []string {
 	for i := range d {
 		s = append(s, string(d[i]))
 	}
-	return s
-}
-
-func toID(s string) string {
-	s = strings.ToLower(s)
-	s = strings.ReplaceAll(s, " ", "")
-	s = strings.TrimSuffix(s, "\n")
-
-	rg := regexp.MustCompile("[^a-z0-9]+")
-	s = rg.ReplaceAllString(s, "")
 	return s
 }
