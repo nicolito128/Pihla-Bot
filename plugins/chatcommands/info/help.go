@@ -16,7 +16,13 @@ var HelpCommand = &commands.Command[*client.Message]{
 
 	Usage: "help [command name]",
 
+	AllowPM: true,
+
 	Handler: func(m *client.Message) error {
+		if len(m.Content) == 0 || strings.Trim(m.Content, " ") == "" {
+			return errors.New("error: invalid usage. Usage: help [command name]")
+		}
+
 		parts := strings.Split(m.Content, " ")
 
 		baseCmd, ok := m.Client().FindCommand(parts[0])
@@ -29,6 +35,12 @@ var HelpCommand = &commands.Command[*client.Message]{
 		s := fmt.Sprintf("**Name**: ``%s``", cmd.Name)
 		s = fmt.Sprintf("%s | Permissions: ``%v``", s, cmd.Permissions.String())
 
+		if cmd.AllowPM {
+			s = fmt.Sprintf("%s | PM allowed: ``yes``", s)
+		} else {
+			s = fmt.Sprintf("%s | PM allowed: ``no``", s)
+		}
+
 		if cmd.Usage != "" {
 			s = fmt.Sprintf("%s | Usage: ``%s%s``", s, m.Client().Prefix(), cmd.Usage)
 		}
@@ -37,7 +49,12 @@ var HelpCommand = &commands.Command[*client.Message]{
 			s = fmt.Sprintf("%s | Description: ``%s``", s, cmd.Description)
 		}
 
-		m.Room.Send(s)
+		if m.PM {
+			m.User.Send(s)
+		} else {
+			m.Room.Send(s)
+		}
+
 		return nil
 	},
 }

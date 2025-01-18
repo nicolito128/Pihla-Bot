@@ -1,6 +1,8 @@
 package admin
 
 import (
+	"fmt"
+
 	"github.com/nicolito128/Pihla-Bot/client"
 	"github.com/nicolito128/Pihla-Bot/commands"
 )
@@ -13,7 +15,26 @@ var DataCommand = &commands.Command[*client.Message]{
 	Permissions: commands.AdminPermission,
 
 	Handler: func(m *client.Message) error {
-		m.Room.Send("Admin command.")
 		return nil
+	},
+
+	SubCommands: map[string]*commands.Command[*client.Message]{
+		"rooms": {
+			Handler: func(m *client.Message) error {
+				for _, room := range m.Client().Rooms {
+					fmt.Println(room.ID, room.Title, len(room.Users))
+				}
+				return nil
+			},
+		},
+
+		"users": {
+			Handler: func(m *client.Message) error {
+				for _, user := range m.Client().Users {
+					fmt.Println(user.ID, user.Name, user.Busy, user.Alts, user.Chatrooms)
+				}
+				return nil
+			},
+		},
 	},
 }

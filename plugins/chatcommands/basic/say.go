@@ -21,16 +21,15 @@ var SayCommand = &commands.Command[*client.Message]{
 
 	Handler: func(m *client.Message) error {
 		content := m.Content
-		if strings.HasPrefix(content, "/") {
+		if strings.HasPrefix(content, "/") || strings.HasPrefix(content, "!") {
 			return fmt.Errorf("error: no estoy autorizada a utilizar otros comandos")
 		}
 
-		if m.PM {
-			m.User.Send(content)
-		} else {
-			m.Room.Send(content)
+		if len(content) == 0 || strings.Trim(content, " ") == "" {
+			return fmt.Errorf("error: invalid usage. Usage: say [phrase]")
 		}
 
+		m.Send(content)
 		return nil
 	},
 }

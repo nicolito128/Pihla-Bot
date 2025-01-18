@@ -257,36 +257,26 @@ func (c *Client) handleChatMessage(m *Message) {
 		hasPerm := m.User.HasPermission(baseCmd.Permissions)
 		if !hasPerm {
 			permMsg := "You don't have sufficient permissions. Requires: " + baseCmd.Permissions.String()
-			if m.PM {
-				m.User.Send(permMsg)
-				return
-			} else {
-				m.Room.Send(permMsg)
-				return
-			}
+			m.Send(permMsg)
 		}
 
 		cmd, rest := commands.FindDeeperSubCommand(baseCmd, body)
 		if cmd != nil {
-			m.Content = strings.Join(rest, " ")
-			m.Content = strings.Trim(m.Content, " ")
+			go func() {
+				m.Content = strings.Join(rest, " ")
+				m.Content = strings.Trim(m.Content, " ")
 
-			hasPerm := m.User.HasPermission(cmd.Permissions)
-			if !hasPerm {
-				permMsg := "You don't have sufficient permissions. Requires: " + cmd.Permissions.String()
-				if m.PM {
-					m.User.Send(permMsg)
-					return
-				} else {
-					m.Room.Send(permMsg)
-					return
+				hasPerm := m.User.HasPermission(cmd.Permissions)
+				if !hasPerm {
+					permMsg := "You don't have sufficient permissions. Requires: " + cmd.Permissions.String()
+					m.Send(permMsg)
 				}
-			}
 
-			err := cmd.Handler(m)
-			if err != nil {
-				m.Room.Send(err.Error())
-			}
+				err := cmd.Handler(m)
+				if err != nil {
+					m.Send(err.Error())
+				}
+			}()
 		}
 	}
 }

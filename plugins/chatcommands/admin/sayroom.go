@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/nicolito128/Pihla-Bot/client"
@@ -23,6 +24,10 @@ var SayRoomCommand = &commands.Command[*client.Message]{
 	Permissions: commands.AdminPermission,
 
 	Handler: func(m *client.Message) error {
+		if strings.HasPrefix(m.Content, "/") || strings.HasPrefix(m.Content, "!") {
+			return fmt.Errorf("error: no estoy autorizada a utilizar otros comandos")
+		}
+
 		parts := strings.Split(m.Content, ",")
 		if len(parts) < 2 {
 			return errors.New("invalid usage. Usage: " + sayRoomUsage)
