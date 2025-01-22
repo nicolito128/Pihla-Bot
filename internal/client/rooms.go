@@ -3,7 +3,7 @@ package client
 import (
 	"slices"
 
-	"github.com/nicolito128/Pihla-Bot/utils"
+	"github.com/nicolito128/Pihla-Bot/pkg/utils"
 )
 
 type Room struct {

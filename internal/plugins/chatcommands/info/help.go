@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nicolito128/Pihla-Bot/client"
-	"github.com/nicolito128/Pihla-Bot/commands"
+	"github.com/nicolito128/Pihla-Bot/internal/client"
+	"github.com/nicolito128/Pihla-Bot/internal/commands"
 )
 
 var HelpCommand = &commands.Command[*client.Message]{

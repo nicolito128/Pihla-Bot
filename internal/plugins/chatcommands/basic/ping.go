@@ -1,8 +1,8 @@
 package basic
 
 import (
-	"github.com/nicolito128/Pihla-Bot/client"
-	"github.com/nicolito128/Pihla-Bot/commands"
+	"github.com/nicolito128/Pihla-Bot/internal/client"
+	"github.com/nicolito128/Pihla-Bot/internal/commands"
 )
 
 var PingCommand = &commands.Command[*client.Message]{

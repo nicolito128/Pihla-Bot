@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/nicolito128/Pihla-Bot/client"
-	"github.com/nicolito128/Pihla-Bot/commands"
-	"github.com/nicolito128/Pihla-Bot/plugins/chatcommands/admin"
-	"github.com/nicolito128/Pihla-Bot/plugins/chatcommands/basic"
-	"github.com/nicolito128/Pihla-Bot/plugins/chatcommands/info"
+	"github.com/nicolito128/Pihla-Bot/internal/client"
+	"github.com/nicolito128/Pihla-Bot/internal/commands"
+	"github.com/nicolito128/Pihla-Bot/internal/plugins/chatcommands/admin"
+	"github.com/nicolito128/Pihla-Bot/internal/plugins/chatcommands/basic"
+	"github.com/nicolito128/Pihla-Bot/internal/plugins/chatcommands/info"
 )
 
 type CommandHandler interface {

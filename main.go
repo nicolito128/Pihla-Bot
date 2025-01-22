@@ -10,9 +10,8 @@ import (
 	"syscall"
 
 	"github.com/joho/godotenv"
-	"github.com/nicolito128/Pihla-Bot/application"
-	"github.com/nicolito128/Pihla-Bot/client"
-	_ "github.com/nicolito128/Pihla-Bot/commands"
+	"github.com/nicolito128/Pihla-Bot/internal/application"
+	"github.com/nicolito128/Pihla-Bot/internal/client"
 )
 
 var (

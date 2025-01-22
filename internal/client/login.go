@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"github.com/gorilla/websocket"
-	"github.com/nicolito128/Pihla-Bot/utils"
+	"github.com/nicolito128/Pihla-Bot/pkg/utils"
 )
 
 type Login struct {

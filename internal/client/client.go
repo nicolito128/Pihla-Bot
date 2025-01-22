@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/nicolito128/Pihla-Bot/commands"
+	"github.com/nicolito128/Pihla-Bot/internal/commands"
 )
 
 type Client struct {

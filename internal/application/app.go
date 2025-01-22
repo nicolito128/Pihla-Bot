@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nicolito128/Pihla-Bot/client"
+	"github.com/nicolito128/Pihla-Bot/internal/client"
 )
 
 type Application struct {
@@ -21,6 +21,7 @@ func New(addr string, client *client.Client) *Application {
 	s.addr = addr
 	s.ct = client
 	s.ng = gin.Default()
+	s.logs = log.Default()
 
 	s.SetupRoutes()
 
@@ -39,7 +40,7 @@ func (a *Application) Run(ctx context.Context) {
 }
 
 func (a *Application) ListenAndServe() error {
-	a.logs.Println("Listening and serving to " + a.addr)
+	a.logs.Println("Listening and serving to http://localhost" + a.addr + "/ - Press CTRL+C to exit")
 	return a.ng.Run(a.addr)
 }
 

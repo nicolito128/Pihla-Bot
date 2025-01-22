@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nicolito128/Pihla-Bot/commands"
-	"github.com/nicolito128/Pihla-Bot/utils"
+	"github.com/nicolito128/Pihla-Bot/internal/commands"
+	"github.com/nicolito128/Pihla-Bot/pkg/utils"
 )
 
 type RankTyp rune

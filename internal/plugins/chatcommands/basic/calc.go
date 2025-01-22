@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/nicolito128/Pihla-Bot/client"
-	"github.com/nicolito128/Pihla-Bot/commands"
-	"github.com/nicolito128/Pihla-Bot/utils"
+	"github.com/nicolito128/Pihla-Bot/internal/client"
+	"github.com/nicolito128/Pihla-Bot/internal/commands"
+	"github.com/nicolito128/Pihla-Bot/pkg/utils"
 	"github.com/nicolito128/go-calculator"
 )
 
