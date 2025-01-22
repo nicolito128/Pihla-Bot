@@ -24,7 +24,7 @@ var DataCommand = &commands.Command[*client.Message]{
 		"rooms": {
 			Handler: func(m *client.Message) error {
 				for _, room := range m.Client().Rooms {
-					fmt.Println(room.ID, room.Title, len(room.Users), room.Users)
+					fmt.Println(room.ID, room.Title, room.Users, room.Auth)
 				}
 				return nil
 			},

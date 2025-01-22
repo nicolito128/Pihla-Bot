@@ -12,5 +12,9 @@ const (
 )
 
 func (p Permission) String() string {
-	return [...]string{"none", "+", "%", "@", "#", "admin"}[p]
+	return [...]string{"none", "+", "^", "%", "@", "#", "admin"}[p]
+}
+
+func (p Permission) Rune() rune {
+	return [...]rune{' ', '+', '^', '%', '@', '#', '~'}[p]
 }

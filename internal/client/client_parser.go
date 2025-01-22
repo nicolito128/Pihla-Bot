@@ -25,7 +25,18 @@ func (c *Client) Parse(data []byte) error {
 	case "init":
 		id := utils.ToID(parts[2])
 		if id == "chat" {
-			if err := c.initChat(parts[3:]); err != nil {
+			var title string
+			var userlist []string
+
+			if parts[3] == "title" {
+				title = strings.TrimSuffix(parts[4], "\n")
+			}
+
+			if parts[5] == "users" {
+				userlist = strings.Split(parts[6], ",")[1:]
+			}
+
+			if err := c.initChat(title, userlist); err != nil {
 				return err
 			}
 		}
@@ -102,8 +113,11 @@ func (c *Client) Parse(data []byte) error {
 				room.Users = append(room.Users, userid)
 			}
 
-			user.updateProfile(username)
+			user.UpdateProfile(username)
 			user.Chatrooms = append(user.Chatrooms, room.ID)
+
+			_, rank, _ := utils.ParseUsername(username)
+			room.AddAuth(rank, username)
 		}
 
 	// |leave/l/L|USER
@@ -124,7 +138,7 @@ func (c *Client) Parse(data []byte) error {
 				room.Users = append(room.Users[0:ind], room.Users[ind+1:]...)
 			}
 
-			user.updateProfile(username)
+			user.UpdateProfile(username)
 
 			ind = slices.Index(user.Chatrooms, room.ID)
 			if ind != -1 {
@@ -142,12 +156,13 @@ func (c *Client) Parse(data []byte) error {
 
 		user, ok := c.Users[oldUserid]
 		if ok {
-			user.updateProfile(newUsername)
+			user.UpdateProfile(newUsername)
 			c.Users[userid] = user
 		} else {
 			user = NewUser(c, newUsername)
 			c.Users[userid] = user
 		}
+
 		user.AddAlt(oldUserid)
 
 		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
@@ -164,32 +179,28 @@ func (c *Client) Parse(data []byte) error {
 			if ind == -1 {
 				user.Chatrooms = append(user.Chatrooms, room.ID)
 			}
+
+			_, rank, _ := utils.ParseUsername(newUsername)
+			room.AddAuth(rank, newUsername)
 		}
 	}
 
 	return nil
 }
 
-func (c *Client) initChat(msg []string) error {
-	var room *Room
+func (c *Client) initChat(roomTitle string, userlist []string) error {
+	room := NewRoom(c, roomTitle)
+	fmt.Println(userlist)
+	for i := range userlist {
+		username := userlist[i]
+		u := NewUser(c, username)
+		u.Chatrooms = append(u.Chatrooms, room.ID)
 
-	if msg[0] == "title" {
-		title := strings.TrimSuffix(msg[1], "\n")
-		room = NewRoom(c, title)
-	}
-	msg = msg[2:]
+		c.Users[u.ID] = u
+		room.Users = append(room.Users, u.ID)
 
-	if msg[0] == "users" {
-		userlist := strings.Split(msg[1], ",")[1:]
-
-		for i := range userlist {
-			username := userlist[i]
-			u := NewUser(c, username)
-			u.Chatrooms = append(u.Chatrooms, room.ID)
-
-			c.Users[u.ID] = u
-			room.Users = append(room.Users, u.ID)
-		}
+		name, rank, _ := utils.ParseUsername(username)
+		room.AddAuth(rank, name)
 	}
 
 	c.Rooms[room.ID] = room
@@ -197,7 +208,7 @@ func (c *Client) initChat(msg []string) error {
 }
 
 func (c *Client) handleChatMessage(m *Message) {
-	if strings.HasPrefix(m.Content, c.config.Bot.Prefix) && !m.User.IsBot {
+	if strings.HasPrefix(m.Content, c.config.Bot.Prefix) && !m.User.Bot {
 		parts := strings.Split(m.Content, " ")
 		cmdName := strings.Trim(parts[0][len(c.config.Bot.Prefix):], " ")
 		body := parts[1:]
@@ -212,7 +223,7 @@ func (c *Client) handleChatMessage(m *Message) {
 			return
 		}
 
-		hasPerm := m.User.HasPermission(baseCmd.Permissions)
+		hasPerm := m.User.HasPermission(m, baseCmd.Permissions)
 		if !hasPerm {
 			permMsg := "You don't have sufficient permissions. Requires: " + baseCmd.Permissions.String()
 			m.Send(permMsg)
@@ -224,7 +235,12 @@ func (c *Client) handleChatMessage(m *Message) {
 				m.Content = strings.Join(rest, " ")
 				m.Content = strings.Trim(m.Content, " ")
 
-				hasPerm := m.User.HasPermission(cmd.Permissions)
+				if m.FromPM && (!cmd.AllowPM && !baseCmd.AllowPM) {
+					m.User.Send("This command is not allowed in PMs.")
+					return
+				}
+
+				hasPerm := m.User.HasPermission(m, cmd.Permissions)
 				if !hasPerm {
 					permMsg := "You don't have sufficient permissions. Requires: " + cmd.Permissions.String()
 					m.Send(permMsg)

@@ -10,40 +10,26 @@ import (
 	"github.com/nicolito128/Pihla-Bot/pkg/utils"
 )
 
-type RankTyp rune
-
 type User struct {
 	client *Client
 
 	ID        string
 	Name      string
-	Rank      RankTyp
 	Busy      bool
-	IsBot     bool
+	Bot       bool
 	LastSeen  time.Time
 	Chatrooms []string
 	Alts      []string
 }
 
-func NewUser(c *Client, username string) *User {
-	id, name, rank, busy := parseUsername(username)
+func NewUser(c *Client, name string) *User {
+	name, rank, busy := utils.ParseUsername(name)
 	return &User{
 		client:   c,
-		ID:       id,
+		ID:       utils.ToID(name),
 		Name:     name,
-		Rank:     rank,
 		Busy:     busy,
-		IsBot:    rank == '*',
-		LastSeen: time.Now(),
-		Alts:     make([]string, 0),
-	}
-}
-
-func NewUserByID(c *Client, userId string) *User {
-	return &User{
-		client:   c,
-		ID:       userId,
-		Name:     userId,
+		Bot:      rank == '*',
 		LastSeen: time.Now(),
 		Alts:     make([]string, 0),
 	}
@@ -53,31 +39,29 @@ func (u *User) Send(message string) error {
 	return u.client.SendPrivateMessage(u.ID, message)
 }
 
-func (u *User) HasPermission(p commands.Permission) bool {
+func (u *User) HasPermission(msg *Message, p commands.Permission) bool {
 	if slices.Contains(u.client.config.Bot.Admins, u.ID) {
 		return true
 	}
 
-	if p.String() == "none" {
+	if p.Rune() == ' ' {
 		return true
 	}
 
-	switch p.String() {
-	case "#":
-		return u.Rank == '#'
-	case "@":
-		return u.Rank == '#' || u.Rank == '@'
-	case "%":
-		return u.Rank == '#' || u.Rank == '@' || u.Rank == '%'
-	case "+":
-		return u.Rank == '#' || u.Rank == '@' || u.Rank == '%' || u.Rank == '+'
+	if msg.Room != nil {
+		room, ok := u.FindRoom(msg.Room.Title)
+		if !msg.FromPM && ok {
+			userlist, ok := room.Auth[p.Rune()]
+			if ok && strings.Contains(userlist, u.ID) {
+				return true
+			}
+		}
 	}
 
 	return false
 }
 func (u *User) InRoom(room string) bool {
 	return slices.Contains(u.Chatrooms, utils.ToID(room))
-
 }
 
 func (u *User) FindRoom(room string) (r *Room, ok bool) {
@@ -109,23 +93,11 @@ func (u *User) AddAlt(userid string) error {
 	return nil
 }
 
-func (u *User) updateProfile(username string) {
-	id, name, rank, busy := parseUsername(username)
-	u.ID = id
+func (u *User) UpdateProfile(username string) {
+	name, rank, busy := utils.ParseUsername(username)
+	u.ID = utils.ToID(name)
 	u.Name = name
-	u.Rank = rank
 	u.Busy = busy
+	u.Bot = rank == '*'
 	u.LastSeen = time.Now()
-}
-
-func parseUsername(username string) (id string, name string, rank RankTyp, busy bool) {
-	id = utils.ToID(username)
-	rank = RankTyp(username[0])
-	busy = strings.HasSuffix(username, "@!")
-	if busy {
-		name = username[1 : len(username)-2]
-	} else {
-		name = username[1:]
-	}
-	return
 }
