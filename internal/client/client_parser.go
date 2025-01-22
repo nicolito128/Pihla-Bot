@@ -190,7 +190,6 @@ func (c *Client) Parse(data []byte) error {
 
 func (c *Client) initChat(roomTitle string, userlist []string) error {
 	room := NewRoom(c, roomTitle)
-	fmt.Println(userlist)
 	for i := range userlist {
 		username := userlist[i]
 		u := NewUser(c, username)
