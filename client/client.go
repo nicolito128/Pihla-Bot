@@ -66,8 +66,10 @@ func (c *Client) Start(ctx context.Context) <-chan error {
 		c.Println("Connecting to Pokemon Showdown...")
 		if err := c.connect(); err != nil {
 			c.errCh <- err
+			return
 		}
 
+		c.Println("PS connection successfully established!")
 		for {
 			typ, p, err := c.ws.ReadMessage()
 			if typ == websocket.CloseMessage {
@@ -178,6 +180,10 @@ func (c *Client) Room(roomId string) *Room {
 
 func (c *Client) User(userId string) *User {
 	return c.Users[userId]
+}
+
+func (c *Client) Config() *ClientConfig {
+	return c.config
 }
 
 func (c *Client) Prefix() string {

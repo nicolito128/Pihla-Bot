@@ -10,19 +10,21 @@ import (
 	"syscall"
 
 	"github.com/joho/godotenv"
+	"github.com/nicolito128/Pihla-Bot/application"
 	"github.com/nicolito128/Pihla-Bot/client"
 	_ "github.com/nicolito128/Pihla-Bot/commands"
 )
 
-// Login information.
 var (
+	addr     = flag.String("addr", ":8080", "addr for web server")
 	name     = flag.String("name", "", "bot name")
 	password = flag.String("pass", "", "bot password")
 	prefix   = flag.String("prefix", "", "bot prefix for commands")
 	rooms    = flag.String("rooms", "", "bot chat rooms")
 	admins   = flag.String("admins", "", "bot owners")
 	avatar   = flag.String("avatar", "", "bot avatar")
-	debug    = flag.Bool("debug", false, "output messages to console")
+
+	debug = flag.Bool("debug", false, "output messages to console")
 )
 
 func init() {
@@ -49,37 +51,23 @@ func init() {
 }
 
 func main() {
-	bot := client.New(UseBotData)
+	bot := client.New(UseFlags)
+
+	log.Println("Loading commands...")
+	loadCommands(bot)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	bot.Println("Loading commands...")
-	loadCommands(bot)
-
-	errch := bot.Start(ctx)
+	app := application.New(*addr, bot)
+	app.Run(ctx)
 
 	stopch := make(chan os.Signal, 1)
 	signal.Notify(stopch, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-
-outer:
-	for {
-		select {
-		case err := <-errch:
-			log.Println("Something went wrong, ending the process with the following error:", err)
-			break outer
-
-		case <-ctx.Done():
-			bot.Stop("Application context job is done.")
-
-		case <-stopch:
-			bot.Stop("Received a stop signal.")
-			break outer
-		}
-	}
+	<-stopch
 }
 
-func UseBotData(cc *client.ClientConfig) {
+func UseFlags(cc *client.ClientConfig) {
 	cc.Debug = *debug
 	cc.Bot.Username = *name
 	cc.Bot.Password = *password

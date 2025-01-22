@@ -2,23 +2,18 @@ package client
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/nicolito128/Pihla-Bot/commands"
 	"github.com/nicolito128/Pihla-Bot/utils"
 )
 
 func (c *Client) Parse(data []byte) error {
-	parts := c.parseRawData(data)
+	parts := c.handleRawData(data)
 
 	switch parts[1] {
 	case "challstr":
@@ -175,50 +170,6 @@ func (c *Client) Parse(data []byte) error {
 	return nil
 }
 
-func (c *Client) login(id, str string) error {
-	u, err := url.Parse(c.config.ActionURL)
-	if err != nil {
-		return fmt.Errorf("invalid url parsing for client action url: %w", err)
-	}
-
-	q := u.Query()
-	q.Set("act", "login")
-	q.Set("name", utils.ToID(c.config.Bot.Username))
-	q.Set("pass", c.config.Bot.Password)
-	q.Set("challengekeyid", id)
-	q.Set("challstr", str)
-
-	u.RawQuery = q.Encode()
-	res, err := http.Post(u.String(), "application/x-www-form-urlencoded; encoding=UTF-8", nil)
-	if err != nil {
-		return fmt.Errorf("post request error when login: %w", err)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("error reading body of login response request: %w", err)
-	}
-
-	var login Login
-	if err = json.Unmarshal(body[1:], &login); err != nil {
-		return fmt.Errorf("json unmarshal of login session error: %w", err)
-	}
-
-	d := []byte(fmt.Sprintf("|/trn %s,0,%s", c.config.Bot.Username, login.Assertion))
-	err = c.ws.WriteMessage(websocket.TextMessage, d)
-	if err != nil {
-		return fmt.Errorf("websocket writing /trn error: %w", err)
-	}
-
-	for _, room := range c.config.Bot.Rooms {
-		if err = c.ws.WriteMessage(websocket.TextMessage, []byte("|/j "+utils.ToID(room))); err != nil {
-			return fmt.Errorf("error trying to join to room `%s` at loign: %w", room, err)
-		}
-	}
-
-	return nil
-}
-
 func (c *Client) initChat(msg []string) error {
 	var room *Room
 
@@ -288,7 +239,7 @@ func (c *Client) handleChatMessage(m *Message) {
 	}
 }
 
-func (c *Client) parseRawData(data []byte) []string {
+func (c *Client) handleRawData(data []byte) []string {
 	d := bytes.Split(data, []byte("|"))
 
 	s := make([]string, 0)
