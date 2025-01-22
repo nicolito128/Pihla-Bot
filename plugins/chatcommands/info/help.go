@@ -49,12 +49,7 @@ var HelpCommand = &commands.Command[*client.Message]{
 			s = fmt.Sprintf("%s | Description: ``%s``", s, cmd.Description)
 		}
 
-		if m.PM {
-			m.User.Send(s)
-		} else {
-			m.Room.Send(s)
-		}
-
+		m.Send(s)
 		return nil
 	},
 }

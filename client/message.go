@@ -9,7 +9,7 @@ type Message struct {
 	User      *User
 	Timestamp time.Time
 	Content   string
-	PM        bool
+	FromPM    bool
 }
 
 func (m *Message) Client() *Client {
@@ -21,7 +21,7 @@ func (m *Message) Client() *Client {
 // If the message was sent in a room, the message will be sent to the room.
 // If the message was sent in a private message, the message will be sent to the user.
 func (m *Message) Send(content string) {
-	if m.PM {
+	if m.FromPM {
 		m.User.Send(content)
 	} else {
 		m.Room.Send(content)

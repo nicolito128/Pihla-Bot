@@ -75,14 +75,19 @@ func (u *User) HasPermission(p commands.Permission) bool {
 
 	return false
 }
+func (u *User) InRoom(room string) bool {
+	return slices.Contains(u.Chatrooms, utils.ToID(room))
 
-func (u *User) AddAlt(userid string) error {
-	if u.HasAlt(userid) {
-		return errors.New("the user already has this alt registered")
+}
+
+func (u *User) FindRoom(room string) (r *Room, ok bool) {
+	roomid := utils.ToID(room)
+	if !u.InRoom(roomid) {
+		return
 	}
 
-	u.Alts = append(u.Alts, userid)
-	return nil
+	r, ok = u.client.Rooms[roomid]
+	return
 }
 
 func (u *User) HasAlt(userid string) bool {
@@ -93,6 +98,15 @@ func (u *User) HasAlt(userid string) bool {
 	}
 
 	return false
+}
+
+func (u *User) AddAlt(userid string) error {
+	if u.HasAlt(userid) {
+		return errors.New("the user already has this alt registered")
+	}
+
+	u.Alts = append(u.Alts, userid)
+	return nil
 }
 
 func (u *User) updateProfile(username string) {

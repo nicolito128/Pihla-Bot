@@ -1,13 +1,17 @@
 package client
 
-import "github.com/nicolito128/Pihla-Bot/utils"
+import (
+	"slices"
+
+	"github.com/nicolito128/Pihla-Bot/utils"
+)
 
 type Room struct {
 	client *Client
 
 	ID    string
 	Title string
-	Users map[string]*User
+	Users []string
 }
 
 func NewRoom(c *Client, title string) *Room {
@@ -15,10 +19,24 @@ func NewRoom(c *Client, title string) *Room {
 		client: c,
 		ID:     utils.ToID(title),
 		Title:  title,
-		Users:  make(map[string]*User),
+		Users:  make([]string, 0),
 	}
 }
 
 func (r *Room) Send(message string) error {
 	return r.client.SendRoomMessage(r.ID, message)
+}
+
+func (r *Room) HasUser(username string) bool {
+	return slices.Contains(r.Users, utils.ToID(username))
+}
+
+func (r *Room) FindUser(username string) (user *User, ok bool) {
+	userid := utils.ToID(username)
+	if !r.HasUser(userid) {
+		return
+	}
+
+	user, ok = r.client.Users[userid]
+	return
 }

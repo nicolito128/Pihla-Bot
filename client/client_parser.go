@@ -45,15 +45,14 @@ func (c *Client) Parse(data []byte) error {
 		}
 
 		tstamp, username, content := time.Unix(i, 0), parts[3], parts[4]
-		user := room.Users[utils.ToID(username)]
-
+		user := c.Users[utils.ToID(username)]
 		msg := &Message{
 			client:    c,
 			Room:      room,
 			User:      user,
 			Timestamp: tstamp,
 			Content:   content,
-			PM:        false,
+			FromPM:    false,
 		}
 
 		c.handleChatMessage(msg)
@@ -64,15 +63,15 @@ func (c *Client) Parse(data []byte) error {
 		room, existsRoom := c.Rooms[roomId]
 		if existsRoom {
 			username, content := parts[2], parts[3]
+			user, existsUser := c.Users[utils.ToID(username)]
 
-			user, existsUser := room.Users[utils.ToID(username)]
 			if existsUser {
 				msg := &Message{
 					client:  c,
 					Room:    room,
 					User:    user,
 					Content: content,
-					PM:      false,
+					FromPM:  false,
 				}
 
 				c.handleChatMessage(msg)
@@ -82,88 +81,94 @@ func (c *Client) Parse(data []byte) error {
 	case "pm":
 		username := parts[2][1:]
 		content := parts[4]
-
 		msg := &Message{
 			client:  c,
 			User:    NewUser(c, username),
 			Content: content,
-			PM:      true,
+			FromPM:  true,
 		}
 
 		c.handleChatMessage(msg)
 
+	// |join/j/J|USER
 	case "join", "j", "J":
 		username := parts[2]
-		user, ok := c.Users[utils.ToID(username)]
+		userid := utils.ToID(username)
+		user, ok := c.Users[userid]
 		if !ok {
 			user = NewUser(c, username)
-			c.Users[utils.ToID(username)] = user
+			c.Users[userid] = user
 		}
 
 		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 		room, ok := c.Rooms[roomId]
 		if ok {
-			_, hasUser := room.Users[user.ID]
-			if !hasUser {
-				room.Users[user.ID] = user
+			if !slices.Contains(room.Users, userid) {
+				room.Users = append(room.Users, userid)
 			}
 
 			user.updateProfile(username)
-			user.Chatrooms = append(user.Chatrooms, roomId)
+			user.Chatrooms = append(user.Chatrooms, room.ID)
 		}
 
+	// |leave/l/L|USER
 	case "leave", "l", "L":
 		username := parts[2]
-		user, ok := c.Users[utils.ToID(username)]
+		userid := utils.ToID(username)
+		user, ok := c.Users[userid]
 		if !ok {
 			user = NewUser(c, username)
-			c.Users[utils.ToID(username)] = user
+			c.Users[userid] = user
 		}
 
 		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 		room, ok := c.Rooms[roomId]
 		if ok {
-			_, hasUser := room.Users[user.ID]
-			if hasUser {
-				delete(room.Users, user.ID)
+			ind := slices.Index(room.Users, userid)
+			if ind != -1 {
+				room.Users = append(room.Users[0:ind], room.Users[ind+1:]...)
 			}
 
 			user.updateProfile(username)
-			ci := slices.Index(user.Chatrooms, room.ID)
-			if ci != -1 {
-				user.Chatrooms = append(user.Chatrooms[:ci], user.Chatrooms[ci+1:]...)
+
+			ind = slices.Index(user.Chatrooms, room.ID)
+			if ind != -1 {
+				user.Chatrooms = append(user.Chatrooms[0:ind], user.Chatrooms[ind+1:]...)
 			}
 		}
 
+	// >ROOMID
+	// |name/n/N|USER|OLDID
 	case "name", "n", "N":
 		newUsername := parts[2]
-		newUser, ok := c.Users[utils.ToID(newUsername)]
-		if !ok {
-			newUser = NewUser(c, newUsername)
-			c.Users[newUser.ID] = newUser
+		oldUsername := parts[3]
+		userid := utils.ToID(newUsername)
+		oldUserid := utils.ToID(oldUsername)
+
+		user, ok := c.Users[oldUserid]
+		if ok {
+			user.updateProfile(newUsername)
+			c.Users[userid] = user
 		} else {
-			newUser.updateProfile(newUsername)
+			user = NewUser(c, newUsername)
+			c.Users[userid] = user
 		}
-
-		oldUserId := parts[3]
-		oldUser, ok := c.Users[oldUserId]
-		if !ok {
-			oldUser = NewUserByID(c, oldUserId)
-			c.Users[oldUser.ID] = oldUser
-		}
-
-		newUser.AddAlt(oldUser.ID)
-		oldUser.AddAlt(newUser.ID)
+		user.AddAlt(oldUserid)
 
 		roomId := utils.ToID(strings.TrimPrefix(parts[0], ">"))
 		room, ok := c.Rooms[roomId]
 		if ok {
-			_, hasUser := room.Users[newUser.ID]
-			if !hasUser {
-				room.Users[newUser.ID] = newUser
+			ind := slices.Index(room.Users, oldUserid)
+			if ind != -1 {
+				room.Users[ind] = userid
+			} else {
+				room.Users = append(room.Users, userid)
 			}
 
-			newUser.Chatrooms = append(newUser.Chatrooms, roomId)
+			ind = slices.Index(user.Chatrooms, room.ID)
+			if ind == -1 {
+				user.Chatrooms = append(user.Chatrooms, room.ID)
+			}
 		}
 	}
 
@@ -232,7 +237,7 @@ func (c *Client) initChat(msg []string) error {
 			u.Chatrooms = append(u.Chatrooms, room.ID)
 
 			c.Users[u.ID] = u
-			room.Users[u.ID] = u
+			room.Users = append(room.Users, u.ID)
 		}
 	}
 
@@ -251,7 +256,7 @@ func (c *Client) handleChatMessage(m *Message) {
 			return
 		}
 
-		if m.PM && !baseCmd.AllowPM {
+		if m.FromPM && !baseCmd.AllowPM {
 			m.User.Send("This command is not allowed in PMs.")
 			return
 		}
