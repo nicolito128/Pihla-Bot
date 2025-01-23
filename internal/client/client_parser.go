@@ -13,6 +13,10 @@ import (
 )
 
 func (c *Client) Parse(data []byte) error {
+	if len(data) < 1 {
+		return nil
+	}
+
 	parts := c.handleRawData(data)
 
 	switch parts[1] {
